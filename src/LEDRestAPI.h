@@ -2,11 +2,14 @@
 
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <memory>
 
 class LEDRestAPI {
     public:
         static const uint8_t LED_BUILTIN = 2;
-        static void registerHandlers(AsyncWebServer* server) {
+        static void registerHandlers(std::shared_ptr<AsyncWebServer> server) {
+            pinMode(LED_BUILTIN, OUTPUT);
+
             server -> on("/", HTTP_GET, [&](AsyncWebServerRequest *request) { 
                 Serial.println("Hello World");
                 request-> send(200, "text/html", "Hello");

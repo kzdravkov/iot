@@ -1,10 +1,5 @@
 #pragma once
 
-extern "C" {
-	#include "freertos/FreeRTOS.h"
-	#include "freertos/timers.h"
-}
-
 #include <Arduino.h>
 #include <Wifi.h>
 #include <LITTLEFS.h>

@@ -3,6 +3,7 @@
 #include <functional>
 #include "Arduino.h"
 #include <list>
+#include <numeric>
 
 typedef struct SensorDescriptor {
     int pin_;
@@ -28,8 +29,10 @@ class Sensor {
 
                 delay(100);
                 return getAvgValue(samples);
-            } else
-                return std::accumulate(values.begin(), values.end(), 0.0) / values.size();
+            } else {
+                int val = std::accumulate(values.begin(), values.end(), 0.0) / values.size();
+                values.clear();
+            }
         }
 
         SensorDescriptor getDescriptor() {
