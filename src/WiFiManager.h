@@ -29,16 +29,16 @@ class WiFiManager {
             unsigned long startTime = millis();
 
             /* Wait until WiFi connection but do not exceed MAX_CONNECT_TIME */
-            while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < timeout)
-                ;
+            while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < timeout) {
+                vTaskDelay(100);
+            }
 
             if(WiFi.status() == WL_CONNECTED) {
-                Serial.println("Connection Successful!\nYour device IP address is " + WiFi.localIP().toString());
+                log_i("Connection Successful! Your device IP address is %s", WiFi.localIP().toString());
 
                 return true;
             } else {
-                Serial.println("Connection FAILED!: ");
-                Serial.println(WiFi.status());
+                log_i("Connection FAILED!: %s", WiFi.status());
 
                 return false;
             }

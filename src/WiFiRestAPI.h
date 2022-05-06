@@ -40,7 +40,7 @@ class WiFiRestAPI {
                         joinedList+=network.toString() + "\n";
                     }
 
-                    request->send(200, "appclication/json", "message:\"" + joinedList + "\"");
+                    request->send(200, "application/json", "message:\"" + joinedList + "\"");
                 });
 
             server->on(

@@ -11,18 +11,18 @@ class LEDRestAPI {
             pinMode(LED_BUILTIN, OUTPUT);
 
             server -> on("/", HTTP_GET, [&](AsyncWebServerRequest *request) { 
-                Serial.println("Hello World");
+                log_i("Hello World");
                 request-> send(200, "text/html", "Hello");
             });
 
             server -> on("/ledOn", HTTP_GET, [&](AsyncWebServerRequest *request) { 
-                Serial.println("Led on");
+                log_i("Led on");
                 digitalWrite(LED_BUILTIN, 1);
                 request-> send(200, "text/json", "mesage:{LED turned ON}");
             });
 
             server -> on("/ledOff", HTTP_GET, [&](AsyncWebServerRequest *request) {
-                Serial.println("Led off");
+                log_i("Led off");
                 digitalWrite(LED_BUILTIN, 0);
                 request-> send(200, "text/json", "mesage:{LED turned OFF}"); 
             });

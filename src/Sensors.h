@@ -13,8 +13,6 @@ typedef struct SensorDescriptor {
 } SensorDescriptor;
 
 class Sensor {
-    std::list<int> values;
-
     private:
         SensorDescriptor sensorDescriptor_;
 
@@ -23,16 +21,17 @@ class Sensor {
             sensorDescriptor_ = sensorDescriptor;
         }
 
-        int getAvgValue(int samples) {
-            if (values.size() <= samples) {
-                values.push_back(sensorDescriptor_.readFunction_(sensorDescriptor_.pin_));
+        int getAvgValue() {
+            long start = millis();
+            long counter = 0;
 
-                delay(100);
-                return getAvgValue(samples);
-            } else {
-                int val = std::accumulate(values.begin(), values.end(), 0.0) / values.size();
-                values.clear();
+            long val;
+            while(millis() - start <= 1000) {
+                val += sensorDescriptor_.readFunction_(sensorDescriptor_.pin_);
+                counter++;
             }
+
+            return (int) (val/counter);
         }
 
         SensorDescriptor getDescriptor() {
