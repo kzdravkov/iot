@@ -27,8 +27,11 @@ class WiFiRestAPI {
                         password = request->getHeader("password")->value();
                     }
 
-                    request->send(200, "application/json", "message:\"Wi-Fi successfully configured\"");
-                    manager->sta(ssid, password);
+                    if(manager->sta(ssid, password)) {
+                        request->send(200, "application/json", "message:\"Wi-Fi successfully connected!\"");
+                    } else {
+                        request->send(503, "application/json", "message:\"Wi-Fi connection failed!\"");
+                    }
                 });
 
             server->on(
@@ -47,10 +50,19 @@ class WiFiRestAPI {
                 "/wifi",
                 HTTP_DELETE,
                 [&](AsyncWebServerRequest *request) {
-                    if(manager->clearKeys()) {
-                        request->send(200, "application/json", "message:\"Keys cleared successfully\"");
+                    if(request->hasHeader("ssid")) {
+                        String ssid = request->getHeader("ssid")->value();
+                        if(manager->clearKey(ssid)) {
+                            request->send(200, "application/json", "message:\"Key " + ssid + " cleared successfully!\"");
+                        } else {
+                            request->send(503, "application/json", "message:\"Key " + ssid + " not found!\"");
+                        }
                     } else {
-                        request->send(500);
+                        if(manager->clearKeys()) {
+                            request->send(200, "application/json", "message:\"Keys cleared successfully!\"");
+                        } else {
+                            request->send(500);
+                        }
                     }
                 });
         }

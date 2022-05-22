@@ -4,21 +4,9 @@
 #include "FS.h"
 #include <LITTLEFS.h>
 
-#define FORMAT_LITTLEFS_IF_FAILED false
-
 class LocalFS {
-    private:
-        static void initLITTLEFS() {
-            if(!LITTLEFS.begin(FORMAT_LITTLEFS_IF_FAILED)){
-                Serial.println("LITTLEFS Mount Failed");
-                return;
-            }
-        }
-
     public:
         static bool writeFile(const String path, const String message) {
-            initLITTLEFS();
-
             Serial.printf("Writing file: %s\n", path.c_str());
 
             File file = LITTLEFS.open(path, LITTLEFS.exists(path) ? FILE_APPEND : FILE_WRITE);
@@ -35,8 +23,6 @@ class LocalFS {
         }
 
         static File readFile(const char * path) {
-            initLITTLEFS();
-
             Serial.printf("Reading file: %s\n", path);
 
             File file = LITTLEFS.open(path);
@@ -49,8 +35,6 @@ class LocalFS {
         }
 
         static boolean deleteFile(const char * path){
-            initLITTLEFS();
-
             Serial.printf("Deleting file: %s\n", path);
             
             bool result;

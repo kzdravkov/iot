@@ -4,37 +4,31 @@
 #include "Arduino.h"
 #include <list>
 #include <numeric>
+#include <AsyncMqttClient.hpp>
+#include <MQTTUtils.h>
 
-typedef struct SensorDescriptor {
-    int pin_;
-    std::function<int(int inputPin)> readFunction_;
-    String topic_;
-    String description_;
-} SensorDescriptor;
 
-class Sensor {
-    private:
-        SensorDescriptor sensorDescriptor_;
+typedef struct Sensor {
+    int pin;
+    std::function<long(int inputPin)> readFunction;
+    String topic;
+    String description;
 
-    public:
-        Sensor(SensorDescriptor sensorDescriptor) {
-            sensorDescriptor_ = sensorDescriptor;
+    long getAvgValue() {
+        long start = millis();
+        long counter = 0;
+
+        long val;
+        while(millis() - start <= 50) {
+            val += readFunction(pin);
+            counter++;
         }
 
-        int getAvgValue() {
-            long start = millis();
-            long counter = 0;
+        return (long) (val/counter);
+    }
 
-            long val;
-            while(millis() - start <= 1000) {
-                val += sensorDescriptor_.readFunction_(sensorDescriptor_.pin_);
-                counter++;
-            }
-
-            return (int) (val/counter);
-        }
-
-        SensorDescriptor getDescriptor() {
-            return sensorDescriptor_;
-        }
-};
+    void publish(std::shared_ptr<AsyncMqttClient> mqttClient) {
+        long val = getAvgValue();
+        MQTTUtils::publish(mqttClient, val, topic, 0);
+    }
+} Sensor;
