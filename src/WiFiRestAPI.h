@@ -8,7 +8,7 @@
 
 class WiFiRestAPI {
     public:
-        static void registerHandlers(std::shared_ptr<AsyncWebServer> server, std::shared_ptr<WiFiManager> manager) {
+        static void registerHandlers(std::shared_ptr<AsyncWebServer> server, WiFiManager* manager) {
             server->on(
                 "/wifi",
                 HTTP_POST,

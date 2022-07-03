@@ -1,24 +1,22 @@
 #pragma once
 
 #include <functional>
-#include "Arduino.h"
 #include <list>
 #include <numeric>
-#include <AsyncMqttClient.hpp>
 #include <MQTTUtils.h>
+#include <LEDRestAPI.h>
 
 
 typedef struct Sensor {
     int pin;
     std::function<long(int inputPin)> readFunction;
     String topic;
-    String description;
 
     long getAvgValue() {
         long start = millis();
         long counter = 0;
 
-        long val;
+        long val = 0;
         while(millis() - start <= 50) {
             val += readFunction(pin);
             counter++;
@@ -27,8 +25,23 @@ typedef struct Sensor {
         return (long) (val/counter);
     }
 
-    void publish(std::shared_ptr<AsyncMqttClient> mqttClient) {
+    void publish(std::shared_ptr<PubSubClient> pubSubClient) {
         long val = getAvgValue();
-        MQTTUtils::publish(mqttClient, val, topic, 0);
+        MQTTUtils::publish(pubSubClient, val, topic, 0);
     }
 } Sensor;
+
+std::list<Sensor> GLOBAL_SENSORS = {
+    // Sensor{ 34, [](int pin) { return analogRead(pin); }, "sensor/analog/moisture"}
+    // {Sensor{ 2, [](int pin) { return digitalRead(pin); }, "sensor/digital/led", "LED" },
+    Sensor{ 4, [](int pin) { return touchRead(pin); }, "sensor/digital/4"}
+};
+
+std::map<String, std::function<void(String)>> GLOBAL_HANDLERS = {
+    {"control/led", [&](String message) {
+        if(std::stoi(message.c_str()))
+            LEDRestAPI::led(1);
+        else
+            LEDRestAPI::led(0);
+    }}
+};

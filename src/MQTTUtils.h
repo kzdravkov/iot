@@ -1,47 +1,51 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <list>
+#include <map>
 #include <numeric>
-#include <AsyncMqttClient.hpp>
-
 #include <PubSubClient.h>
 #include <SSLClient.h>
+#include <string>
 
 class MQTTUtils {
     public:
-        static void publish(std::shared_ptr<AsyncMqttClient> mqttClient, long val, String topic, int qos) {
-            char payload[sizeof(val) + sizeof(char)];
-            std::sprintf(payload, "%d", val);
 
-            log_i("publish %d in %s", val, topic.c_str());
+        static std::map<String, std::function<void(char*, uint8_t*, unsigned int)>> mqttHandlers;
 
-            mqttClient->publish(
-                topic.c_str(),
-                qos, /*qos*/
-                false, /*retain*/
-                payload);
+        static void publish(std::shared_ptr<PubSubClient> pubSubClient, long val, String topic, int qos) {
+            const char* payload = std::to_string(val).c_str();
+
+            log_i("publish %s in %s", payload, topic.c_str());
+
+            pubSubClient->publish(topic.c_str(), payload, false);
         }
 
-        static void onMessage(std::shared_ptr<AsyncMqttClient> mqttClient, String topic, int qos, std::function<void(String msg)> action) {
-            mqttClient->subscribe(topic.c_str(), qos);
-            mqttClient->onMessage([action](
-                char* topic,
-                char* payload,
-                AsyncMqttClientMessageProperties properties,
-                size_t len,
-                size_t index,
-                size_t total) {
-                    String msg;
-
-                    for (int i = 0; i < len; i++) {
-                        msg += (char)payload[i];
-                    }
-
-                    log_i("read topic %s, message %s", topic, msg);
-
-                    action(msg);
-                });
+        static void registerMQTTHandler() {
 
         }
+
+        // static void onMessage(std::shared_ptr<PubSubClient> pubSubClient, char* topic, byte* payload, unsigned int length) {
+        //     pubSubClient->setCallback
+        //     mqttClient->subscribe(topic.c_str(), qos);
+        //     mqttClient->onMessage([action](
+        //         char* topic,
+        //         char* payload,
+        //         AsyncMqttClientMessageProperties properties,
+        //         size_t len,
+        //         size_t index,
+        //         size_t total) {
+        //             String msg;
+
+        //             for (int i = 0; i < len; i++) {
+        //                 msg += (char)payload[i];
+        //             }
+
+        //             log_i("read topic %s, message %s", topic, msg);
+
+        //             action(msg);
+        //         });
+
+        // }
 };

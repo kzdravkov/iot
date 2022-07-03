@@ -23,14 +23,17 @@ struct WiFiNetwork {
     }
 };
 
+SemaphoreHandle_t connectionInProgress = xSemaphoreCreateRecursiveMutex();
+
 class WiFiManager {
     private:
-        volatile boolean isConnecting;
+        TaskHandle_t _wifiReconnectHandle;
 
         boolean waitForConnection();
         void disconnect();
         std::map<String, String> readKeysFile();
         String getStrongestNetwork(boolean open);
+
     public:
         WiFiManager();
         boolean autoConnect();
@@ -40,9 +43,14 @@ class WiFiManager {
         String connectToStrongestOpen();
         boolean sta(String SSID, String password);
         void staAsync(String SSID, String password);
+        void setAutoConnectTaskHandle(TaskHandle_t handle);
 };
 
+
 WiFiManager::WiFiManager() {
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAP("ESP32-Access-Point", "123456789");
+
     WiFi.onEvent(
         [this](WiFiEvent_t event, WiFiEventInfo_t info) {
             if(event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
@@ -55,8 +63,6 @@ WiFiManager::WiFiManager() {
                             info.wifi_sta_disconnected.ssid_len,
                             (int*) info.wifi_sta_disconnected.ssid));
                 }
-
-                autoConnect();
             } else if(event == ARDUINO_EVENT_WIFI_STA_CONNECTED) {
                 LEDRestAPI::led(1);
             }
@@ -112,14 +118,9 @@ String WiFiManager::getStrongestNetwork(boolean open) {
 }
 
 boolean WiFiManager::autoConnect() {
-    WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP("ESP32-Access-Point", "123456789");
+    if(xSemaphoreTakeRecursive(connectionInProgress, ( TickType_t ) 15000 ) == pdTRUE) {
+        auto keys = readKeysFile();
 
-    auto keys = readKeysFile();
-    if(keys.size() == 0)
-        return false;
-
-    while(true) {
         for (WiFiNetwork network : scanNetworks()) {
             if(network.auth != 0) {
                 auto key = keys.find(network.SSID);
@@ -128,9 +129,11 @@ boolean WiFiManager::autoConnect() {
                 }
             }
         }
-
-        vTaskDelay(1000);
+    } else {
+        log_e("Could not aquire 'connectionInProgress' semaphore in 15 seconds !!!");
     }
+
+    return false;
 }
 
 bool WiFiManager::clearKeys() {
@@ -204,21 +207,31 @@ std::list<WiFiNetwork> WiFiManager::scanNetworks() {
 }
 
 boolean WiFiManager::sta(String SSID, String password) {
-    if(password == emptyString) {
-        WiFi.begin(SSID.c_str());
+    if(xSemaphoreTakeRecursive(connectionInProgress, ( TickType_t ) 15000 ) == pdTRUE) {
+        if(password == emptyString) {
+            WiFi.begin(SSID.c_str());
+        } else {
+            WiFi.begin(SSID.c_str(), password.c_str());
+        }
+
+        boolean success = waitForConnection();
+        if(success) {
+            auto keys = readKeysFile();
+
+            if(!keys.count(SSID)) {
+                String s = SSID + ";" + password + "\n";
+                LocalFS::writeFile("/wifi.txt", s);
+            }
+        }
+
+        xSemaphoreGive(connectionInProgress);
+        return success;
     } else {
-        WiFi.begin(SSID.c_str(), password.c_str());
+        log_e("Connecting to a network took more than 15 seconds!");
+        return false;
     }
+}
 
-    boolean success = waitForConnection();
-    if(success) {
-        auto keys = readKeysFile();
-
-        if(!keys.count(SSID)) {
-            String s = SSID + ";" + password + "\n";
-            LocalFS::writeFile("/wifi.txt", s);
-        } 
-    }
-
-    return success;
+void WiFiManager::setAutoConnectTaskHandle(TaskHandle_t wifiReconnectHandle) {
+    _wifiReconnectHandle = wifiReconnectHandle;
 }

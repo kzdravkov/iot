@@ -24,15 +24,15 @@ class LEDRestAPI {
         }
 
         static void registerMQTT(std::shared_ptr<AsyncMqttClient> mqttClient) {
-            MQTTUtils::onMessage(
-                mqttClient,
-                LED_TOPIC,
-                2,
-                [](String msg) {
-                    int valNow = digitalRead(LED_BUILTIN);
-                    led(valNow > 0 ? 0 : 1);
-                }
-            );
+            // MQTTUtils::onMessage(
+            //     mqttClient,
+            //     LED_TOPIC,
+            //     2,
+            //     [](String msg) {
+            //         int valNow = digitalRead(LED_BUILTIN);
+            //         led(valNow > 0 ? 0 : 1);
+            //     }
+            // );
         }
 
         static void led(boolean on) {
