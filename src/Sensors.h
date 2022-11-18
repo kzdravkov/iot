@@ -38,10 +38,13 @@ std::list<Sensor> GLOBAL_SENSORS = {
 };
 
 std::map<String, std::function<void(String)>> GLOBAL_HANDLERS = {
-    {"control/led", [&](String message) {
-        if(std::stoi(message.c_str()))
-            LEDRestAPI::led(1);
+    {"control/relay", [&](String message) {
+        pinMode(13, OUTPUT);
+
+        if(std::stoi(message.c_str())) {
+            digitalWrite(13, HIGH);
+        }
         else
-            LEDRestAPI::led(0);
+            digitalWrite(13, LOW);
     }}
 };

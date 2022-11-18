@@ -17,16 +17,13 @@
 #include <tuple>
 
 int WEB_SERVER_PORT = 8080;
+String DEVICE_NAME = "ESP32-1";
+boolean QUEUE_MESSAGES = true;
 
-PubSubClientWrapper* pubSubClient = new PubSubClientWrapper(
-    "ec9402f7d1fb4d5b9087f63a81c0aaff.s1.eu.hivemq.cloud",
-    8883,
-    "kzdravkov",
-    "qfn2Veqm",
-    "ESP32-1");
 
-std::shared_ptr<AsyncWebServer> webServer = std::shared_ptr<AsyncWebServer>(new AsyncWebServer(WEB_SERVER_PORT));
-WiFiManager* wifiManager = new WiFiManager();
+PubSubClientWrapper* pubSubClient;
+std::shared_ptr<AsyncWebServer> webServer;
+WiFiManager* wifiManager;
 
 void registerWebServer() {
     LEDRestAPI::registerHandlers(webServer);
@@ -48,41 +45,33 @@ void initESP() {
     Serial.begin(115200);
     Serial.setDebugOutput(true);
 
-    LITTLEFS.begin();
+    LITTLEFS.begin(true);
 
     esp_wifi_set_ps(WIFI_PS_NONE);
 }
 
-void reconnect (void* arg) {
-    // WiFiManager* wifiManager = ((WiFiManager*) arg);
-    // while(!wifiManager->autoConnect()) {
-    //     vTaskDelay(500);
-    // }
-
-    // vTaskDelay(1000);
-}
-
 void setup() {
     initESP();
+    
+    webServer = std::shared_ptr<AsyncWebServer>(new AsyncWebServer(WEB_SERVER_PORT));
 
     registerWebServer();
 
-    TaskHandle_t wifiReconnectHandle;
+    wifiManager = new WiFiManager();
 
-    xTaskCreate(
-        reconnect,
-        "WiFi-Reconnect",
-        8192,
-        &wifiManager,
-        tskIDLE_PRIORITY,
-        &wifiReconnectHandle);
-
-    // wifiManager->setAutoConnectTaskHandle(wifiReconnectHandle);
-
-    // vTaskStartScheduler();
+    pubSubClient = new PubSubClientWrapper(
+        "ec9402f7d1fb4d5b9087f63a81c0aaff.s1.eu.hivemq.cloud",
+        8883,
+        "kzdravkov",
+        "qfn2Veqm",
+        DEVICE_NAME,
+        QUEUE_MESSAGES);
 }
 
 void loop() {
-    // pubSubClient.loop();
-    // vTaskDelay(1000);
+    while(WiFi.status() != WL_CONNECTED && !wifiManager->autoConnect()) {
+        vTaskDelay(5000);
+    }
+
+    pubSubClient->loop();
 }

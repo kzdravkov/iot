@@ -34,46 +34,57 @@ class PubSubClientWrapper {
     String _username;
     String _password;
     String _deviceName;
+    boolean _queueMessages;
 
-    long lastReconnectAttempt = 0;
     long lastSensorPush = 0;
 
     public:
-
-
         PubSubClientWrapper(
                 char* hostname,
                 int port,
                 String username,
                 String password,
-                String deviceName) {
+                String deviceName,
+                boolean queueMessages) {
             _username = username;
             _password = password;
             _deviceName = deviceName;
+            _queueMessages = queueMessages;
 
-            WiFiClient wifiClient;
-            SSLClient sslClient(wifiClient, TAs, (size_t)TAs_NUM, 34);
+            WiFiClient* wifiClient = new WiFiClient();
+            SSLClient* sslClient = new SSLClient(*wifiClient, TAs, (size_t)TAs_NUM, 34);
 
-            _pubSubClient = std::shared_ptr<PubSubClient>(new PubSubClient(sslClient));
+            _pubSubClient = std::shared_ptr<PubSubClient>(new PubSubClient(*sslClient));
             _pubSubClient->setServer(hostname, port);
-
+            _pubSubClient->setBufferSize(8192);
             _pubSubClient->setCallback(callback);
         }
 
         void loop() {
                 if (!_pubSubClient->connected()) {
                     log_i("MQTT Trying to connect");
-                    if(_pubSubClient->connect(_deviceName.c_str(), _username.c_str(), _password.c_str())) {
-                        log_i("MQTT Connected!");
-                        for(auto handler : GLOBAL_HANDLERS) {
-                            log_i("Subscribing %s", handler.first.c_str());
-                            _pubSubClient->subscribe(handler.first.c_str(), 0);
-                        }
+                    if(_pubSubClient->connect(
+                        _deviceName.c_str(),
+                        _username.c_str(),
+                        _password.c_str(),
+                        NULL, /*willTopic*/
+                        0, /*willQos*/
+                        false, /*willRetain*/
+                        NULL, /*willMessage*/
+                        !_queueMessages /*cleanSession*/)) {
+                            log_i("MQTT Connected!");
+                            for(auto handler : GLOBAL_HANDLERS) {
+                                log_i("Subscribing %s", handler.first.c_str());
+                                _pubSubClient->subscribe(handler.first.c_str(), 0);
+                            }
                     }
                 } else {
-                        for(auto sensor : GLOBAL_SENSORS) {
-                            MQTTUtils::publish(_pubSubClient, sensor.getAvgValue(), sensor.topic, 0);
-                        }
+                    // if(millis() - lastSensorPush > 1000) {
+                    //     for(auto sensor : GLOBAL_SENSORS)
+                    //         MQTTUtils::publish(_pubSubClient, sensor.getAvgValue(), sensor.topic, 0);
+
+                    //     lastSensorPush = millis();
+                    // }
 
                     _pubSubClient->loop();
                 }

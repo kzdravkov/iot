@@ -48,8 +48,9 @@ class WiFiManager {
 
 
 WiFiManager::WiFiManager() {
-    WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP("ESP32-Access-Point", "123456789");
+    log_i("Contstructor called");
+    WiFi.disconnect();
+    WiFi.softAP("ESP32-Access-Point2", "123456789");
 
     WiFi.onEvent(
         [this](WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -129,6 +130,8 @@ boolean WiFiManager::autoConnect() {
                 }
             }
         }
+
+        xSemaphoreGiveRecursive(connectionInProgress);
     } else {
         log_e("Could not aquire 'connectionInProgress' semaphore in 15 seconds !!!");
     }
@@ -170,11 +173,12 @@ String WiFiManager::connectToStrongestOpen() {
 }
 
 std::list<WiFiNetwork> WiFiManager::scanNetworks() {
+    std::list<WiFiNetwork> networks;
+
     int n = WiFi.scanNetworks();
 
     if(n == WIFI_SCAN_RUNNING || n == WIFI_SCAN_FAILED) {
-        vTaskDelay(1000);
-        scanNetworks();
+        return networks;
     }
 
     int indices[n];
@@ -186,8 +190,6 @@ std::list<WiFiNetwork> WiFiManager::scanNetworks() {
         for (int j = i + 1; j < n; j++)
             if (WiFi.RSSI(indices[j]) > WiFi.RSSI(indices[i]))
                 std::swap(indices[i], indices[j]);
-
-    std::list<WiFiNetwork> networks;
 
     for (int i = 0; i < n; ++i) {
         WiFiNetwork network;
@@ -224,7 +226,7 @@ boolean WiFiManager::sta(String SSID, String password) {
             }
         }
 
-        xSemaphoreGive(connectionInProgress);
+        xSemaphoreGiveRecursive(connectionInProgress);
         return success;
     } else {
         log_e("Connecting to a network took more than 15 seconds!");
