@@ -63,7 +63,7 @@ void setup() {
         "ec9402f7d1fb4d5b9087f63a81c0aaff.s1.eu.hivemq.cloud",
         8883,
         "kzdravkov",
-        "qfn2Veqm",
+        "secret",
         DEVICE_NAME,
         QUEUE_MESSAGES);
 }
